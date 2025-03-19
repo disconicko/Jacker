@@ -258,6 +258,10 @@ function exportFormAsHTML() {
   // Get the current URL
   const currentURL = window.location.href;
   
+  // Get current scroll position
+  const scrollX = window.scrollX || window.pageXOffset;
+  const scrollY = window.scrollY || window.pageYOffset;
+  
   // Get viewport dimensions for percentage calculations
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -286,6 +290,15 @@ function exportFormAsHTML() {
       left: 0;
       z-index: 1;
     }
+    .overlay-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
     .form-input {
       position: absolute;
       z-index: 10;
@@ -293,6 +306,7 @@ function exportFormAsHTML() {
       border: none;
       outline: none;
       color: black; /* Make text visible */
+      pointer-events: auto;
     }
     .form-input:focus {
       outline: none;
@@ -312,12 +326,25 @@ function exportFormAsHTML() {
       justify-content: center;
       align-items: center;
       font-size: 12px;
+      pointer-events: auto;
     }
   </style>
   <script>
     window.onload = function() {
       // Get all form inputs
       const inputs = document.querySelectorAll('.form-input');
+      
+      // Get the iframe and wait for it to load
+      const iframe = document.querySelector('iframe');
+      
+      // Create scroll synchronization
+      function syncScroll() {
+        const overlayContainer = document.querySelector('.overlay-container');
+        overlayContainer.style.transform = 'translate(0, ' + (-window.scrollY) + 'px)';
+      }
+      
+      // Add scroll event listener to sync overlay position with scroll
+      window.addEventListener('scroll', syncScroll);
       
       // Hover effect to make elements temporarily visible when debugging
       const addHoverEffects = false; // Set to true for debugging
@@ -366,45 +393,44 @@ function exportFormAsHTML() {
         // Redirect to the URL with parameters
         window.location.href = finalUrl;
       });
+      
+      // Set initial scroll position
+      iframe.onload = function() {
+        try {
+          iframe.contentWindow.scrollTo(${scrollX}, ${scrollY});
+        } catch(e) {
+          console.log('Could not scroll iframe due to security restrictions');
+        }
+      };
     };
   </script>
 </head>
 <body>
   <iframe src="${currentURL}" sandbox="allow-same-origin allow-scripts"></iframe>
+  <div class="overlay-container">
 `;
 
-  // Add each input field with percentage-based positioning
+  // Add each input field inside the overlay container
   inputFields.forEach((field, index) => {
     const inputElement = field.querySelector('input');
     const rect = field.getBoundingClientRect();
     const value = inputElement ? inputElement.value : '';
     
-    // Convert pixel positions to percentages
-    const topPercent = (rect.top / viewportHeight) * 100;
-    const leftPercent = (rect.left / viewportWidth) * 100;
-    const widthPercent = (rect.width / viewportWidth) * 100;
-    const heightPercent = (rect.height / viewportHeight) * 100;
-    
     htmlContent += `
-  <input type="text" class="form-input" style="top: ${topPercent}%; left: ${leftPercent}%; width: ${widthPercent}%; height: ${heightPercent}%;" value="${value}" />`;
+    <input type="text" class="form-input" style="top: ${rect.top + scrollY}px; left: ${rect.left + scrollX}px; width: ${rect.width}px; height: ${rect.height}px;" value="${value}" />`;
   });
   
-  // Add submit button with percentage-based positioning
+  // Add submit button inside the overlay container
   if (submitBtn) {
     const submitRect = submitBtn.getBoundingClientRect();
     
-    // Convert pixel positions to percentages
-    const topPercent = (submitRect.top / viewportHeight) * 100;
-    const leftPercent = (submitRect.left / viewportWidth) * 100;
-    const widthPercent = (submitRect.width / viewportWidth) * 100;
-    const heightPercent = (submitRect.height / viewportHeight) * 100;
-    
     htmlContent += `
-  <button class="submit-button" style="top: ${topPercent}%; left: ${leftPercent}%; width: ${widthPercent}%; height: ${heightPercent}%;">Submit</button>`;
+    <button class="submit-button" style="top: ${submitRect.top + scrollY}px; left: ${submitRect.left + scrollX}px; width: ${submitRect.width}px; height: ${submitRect.height}px;">Submit</button>`;
   }
   
-  // Close the HTML
+  // Close the overlay container and HTML
   htmlContent += `
+  </div>
 </body>
 </html>`;
 
