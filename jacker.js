@@ -446,4 +446,4 @@ function exportFormAsHTML() {
   URL.revokeObjectURL(url);
 }
 
-console.log('✅ Minimal input fields system initialized. Click the + button to add fields, E to export!');
+console.log('Minimal input fields system initialized. Click the + button to add fields');
